@@ -1,0 +1,211 @@
+---
+title: "TidyTuesday_CRAN"
+output: github_document
+---
+
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacman)
+p_load(tidyverse, tidytuesdayR, showtext, ggtext, skimr, lubridate, ggrepel)
+
+```
+
+Esta semana, analizaremos la base de datos R vignettes. Los datos provienen de Robert Flight.
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load(2022, week = 11)
+bioc <- tuesdata$bioc
+cran<- tuesdata$cran
+
+```
+Primero, sacaremos una gráfica de barras con los 10 paquetes con más viñetas en general según RmarkDown. Filtrando datos y haciendo una suma acumulada de las viñetas.
+
+```{r}
+library(tidyverse)
+tabla1<-cran %>%
+  group_by(package) %>%
+  summarize(rmd=sum(na.omit(rmd)))
+  
+#Organizar el TOP 20 de viñetas
+Top<-tabla1[order(tabla1$rmd,decreasing = TRUE),]
+
+#Definiendo el ranking
+Top_10<-Top %>%
+  filter(rmd>237) %>%
+  mutate(ranking = row_number()) %>%
+
+  
+  # label text
+  mutate(etiqueta = str_glue(
+    'Ranking: {ranking}\nPaqueteria: {package}\nRmd acumulado: {rmd}'
+  ))
+
+
+font_add_google(family='Goldman', 'Goldman')                              
+font_add_google(family='Meera Inimai', 'Meera Inimai')                    
+font_add_google(family='Saira Semi Condensed', 'Saira Semi Condensed')    
+showtext_auto(enable = TRUE) 
+
+
+Top_10 %>% 
+  
+  ggplot(aes(x =  rmd,  y = package)) +
+  
+  # geometries
+  geom_segment(aes(xend = 0, yend = package),  
+               size = 2,
+               color = 'violet') + 
+  
+  geom_point(size = 4,
+             color = '#DCDCDC') + 
+  
+  geom_label_repel(aes(label = etiqueta),
+                   fontface = 'bold.italic', 
+                   box.padding = 0.1,
+                   label.padding = 0.3,
+                   fill="black", 
+                   color ="white",
+                   direction = 'both',
+                   hjust = 1,
+                   size = 2.4,
+  ) +
+  
+  # scales
+  scale_x_continuous(limits = c(0, 700)) + 
+  scale_y_discrete() +
+  
+  # labs
+  labs(
+    title = ' TOP 10 CRAN Paquetes con más Vignettes según RMD',
+    subtitle = "Paquetería de 2014 a 2021",
+    caption = paste0(
+      "TidyTuesday: Semana 11 • Data: Robert Flight GitHub •Ariel Coto, Visualización inspirada de: Steven Ponce"),
+    x = '',
+    y = '' ) +
+  
+  # theme
+  theme_minimal(base_family = "Meera Inimai") +
+  
+  theme(
+    plot.title.position = "plot",
+    axis.text   = element_blank(),
+    panel.grid  = element_blank(),
+    plot.background = element_rect(fill = "black", color = "white"),
+    panel.background = element_rect(fill = "black", color = "#ffdcd0"),
+    
+    plot.margin = margin(t = 15, r = 0, b = 10, l = 10),
+    
+    plot.title = element_text(
+      family = 'Goldman',
+      color = "white",
+      face = "bold",
+      size = 50,  
+      margin = margin(t = 10)),
+    
+    plot.subtitle = element_text(
+      family = 'Goldman',
+      color = "#F8F8FF",
+      size = 32,  
+      margin = margin(t = 5, b = 10)),
+    
+    plot.caption = element_text(
+      color = "#8a8b91",
+      family = 'Saira Semi Condensed',
+      size = 12,
+      hjust = .5,
+      margin = margin(t = 10, b = 10)))
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+Ahora, modificaremos la variable DATE de cran para que ya no sean strings. y analizaremos los lanzamientos y las actualizaciones de las paqueterias a través de los años
+
+```{r}
+
+
+cran$data_time<-as.Date(cran$date) 
+
+#Podemos gráficar por tiempo y el numero  de paquetes en el mismo año para observar el crecimiento de
+#las actualizaciones... o de nuevos paquetes..
+
+#Entonces ennumeramos los paquetes pero primero debo quitar los NA
+
+datos_limpios<-cran %>% drop_na(data_time)
+
+
+
+#Entonces teniendo los datos limpios vamos a ordenarlos de forma ascendente y vamos
+#a eliminar la columna "date" que son de caracteres...
+datos_limpios_asc<-datos_limpios[order(datos_limpios$data_time,decreasing = FALSE),] %>%
+  select(-date) %>%
+  rename(date=data_time)%>%
+  mutate(acumulado=row_number())
+  
+
+datos_limpios_asc %>% 
+  
+  ggplot(aes(x =  date,  y = acumulado)) +
+  
+
+  geom_line()+
+
+  
+  # scales
+ 
+  # labs
+  labs(
+    title = ' Lanzamiento y actualizaciones de paqueterías. Histórico',
+    subtitle = "de 1987 a 2021",
+    caption = paste0(
+      "TidyTuesday: Semana 11 • Data: Robert Flight GitHub •Ariel Coto Tapia"),
+    x = '',
+    y = '' ) +
+  
+  # theme
+  theme_minimal(base_family = "Meera Inimai") 
+  
+ 
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
